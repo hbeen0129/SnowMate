@@ -99,7 +99,7 @@ open MyProject.xcodeproj
 
 | 이름 | GitHub |
 |------|--------|
-| 나 | [@me](https://github.com/me) |
+| 나 | [@hbeen0129](https://github.com/me) |
 
 
 ## 📝 License
