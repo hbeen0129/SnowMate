@@ -14,13 +14,6 @@ struct SnowMateApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: [
-            RidingSession.self,
-            SpeedPoint.self,
-            AltitudePoint.self,
-            HeartRatePoint.self,
-            PauseEvent.self,
-            RidingDiary.self
-        ])
+        .modelContainer(ModelContainer.shared)  // ✅ 공유 컨테이너 사용
     }
 }
