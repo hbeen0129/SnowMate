@@ -61,18 +61,9 @@ struct WatchRidingView: View {
             } label: {
                 Text("라이딩 시작")
                     .font(.headline)
-<<<<<<< HEAD
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.glass)
-=======
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-            }
-            .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.capsule)
->>>>>>> dev
             .tint(.blue)
         }
         .padding()
@@ -129,15 +120,9 @@ struct WatchRidingView: View {
                         .font(.title2)
                         .frame(width: 50, height: 50)
                 }
-<<<<<<< HEAD
                 .buttonStyle(.glass)
                 .buttonBorderShape(.circle)
                 .tint(.orange)
-=======
-                .buttonStyle(.borderedProminent)
-                .tint(.orange)
-                .buttonBorderShape(.circle)
->>>>>>> dev
                 
                 Button {
                     tracker.stopRiding()
@@ -147,15 +132,9 @@ struct WatchRidingView: View {
                         .font(.title2)
                         .frame(width: 50, height: 50)
                 }
-<<<<<<< HEAD
                 .buttonStyle(.glass)
                 .buttonBorderShape(.circle)
                 .tint(.red)
-=======
-                .buttonStyle(.borderedProminent)
-                .tint(.red)
-                .buttonBorderShape(.circle)
->>>>>>> dev
             }
         }
         .padding()
@@ -190,38 +169,27 @@ struct WatchRidingView: View {
                     Text("계속하기")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
-<<<<<<< HEAD
                 }
                 .buttonStyle(.glass)
-=======
-                        .padding(.vertical, 12)
-                }
-                .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.capsule)
->>>>>>> dev
-                .tint(.blue)
-                
-                Button {
-                    tracker.stopRiding()
-                    showSummary = true
-                } label: {
-                    Text("종료")
-                        .font(.subheadline)
-<<<<<<< HEAD
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.glass)
-=======
-                }
-                .buttonStyle(.bordered)
-                .buttonBorderShape(.capsule)
->>>>>>> dev
-                .tint(.red)
+                .padding(.vertical, 12)
             }
+            .buttonBorderShape(.capsule)
+            .tint(.blue)
+            
+            Button {
+                tracker.stopRiding()
+                showSummary = true
+            } label: {
+                Text("종료")
+                    .font(.subheadline)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.glass)
+            .tint(.red)
         }
-        .padding()
     }
 }
+
 
 // MARK: - 라이딩 결과 요약 화면
 struct RidingSummaryView: View {
@@ -266,15 +234,8 @@ struct RidingSummaryView: View {
                     Text("확인")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
-<<<<<<< HEAD
                 }
                 .buttonStyle(.glass)
-=======
-                        .padding(.vertical, 12)
-                }
-                .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.capsule)
->>>>>>> dev
                 .tint(.blue)
             }
             .padding()
