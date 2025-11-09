@@ -189,8 +189,6 @@ struct WatchRidingView: View {
         }
     }
 }
-
-
 // MARK: - 라이딩 결과 요약 화면
 struct RidingSummaryView: View {
     let session: RidingSession
