@@ -14,12 +14,6 @@ struct SnowMate_Watch_App: App {
         WindowGroup {
             WatchRidingView()
         }
-        .modelContainer(for: [
-            RidingSession.self,
-            SpeedPoint.self,
-            AltitudePoint.self,
-            HeartRatePoint.self,
-            PauseEvent.self
-        ])
+        .modelContainer(ModelContainer.shared)  // ✅ 공유 컨테이너 사용
     }
 }
