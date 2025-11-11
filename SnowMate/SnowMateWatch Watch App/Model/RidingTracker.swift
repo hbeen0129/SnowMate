@@ -60,17 +60,32 @@ class RidingTracker: NSObject, ObservableObject {
     }
     
     private func requestHealthKitAuthorization() {
-        let typesToRead: Set<HKObjectType> = [
-            HKObjectType.quantityType(forIdentifier: .heartRate)!,
-            HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!
+        // toShare에 워크아웃 타입 추가
+        let typesToShare: Set<HKSampleType> = [
+            HKWorkoutType.workoutType()
         ]
         
-        healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
+        let typesToRead: Set<HKObjectType> = [
+            HKObjectType.quantityType(forIdentifier: .heartRate)!,
+            HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
+            HKWorkoutType.workoutType() // 워크아웃 읽기 권한도 추가
+        ]
+        
+        // toShare를 nil이 아닌 실제 Set으로 전달
+        healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, error in
             if let error = error {
-                print("HealthKit 권한 에러: \(error.localizedDescription)")
+                print("❌ HealthKit 권한 에러: \(error.localizedDescription)")
+                return
+            }
+            
+            if success {
+                print("✅ HealthKit 권한 허용됨")
+            } else {
+                print("⚠️ HealthKit 권한 거부됨")
             }
         }
     }
+
     
     // MARK: - 라이딩 시작
     func startRiding() {
