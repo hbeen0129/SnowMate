@@ -44,9 +44,14 @@ struct CalendarView: View {
                         Text(yearString)
                             .font(.subheadline)
                             .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule()
+                                    .strokeBorder(Color.primary.opacity(0.2), lineWidth: 1)
+                            )
                     }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.capsule)
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -56,9 +61,14 @@ struct CalendarView: View {
                             Text("오늘")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
+                                .foregroundColor(.primary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule()
+                                        .strokeBorder(Color.primary.opacity(0.2), lineWidth: 1)
+                                )
                         }
-                        .buttonStyle(.bordered)
-                        .buttonBorderShape(.capsule)
                     }
                 }
             }
