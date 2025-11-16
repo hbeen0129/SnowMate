@@ -10,10 +10,16 @@ import SwiftData
 
 @main
 struct SnowMateApp: App {
+    init() {
+        // WatchConnectivity 초기화 및 ModelContext 설정
+        WatchConnectivityManager.shared.configure(with: ModelContainer.shared.mainContext)
+        print("✅ WatchConnectivity 초기화 완료 (iOS)")
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(ModelContainer.shared)  // ✅ 공유 컨테이너 사용
+        .modelContainer(ModelContainer.shared)
     }
 }
