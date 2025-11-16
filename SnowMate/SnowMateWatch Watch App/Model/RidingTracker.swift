@@ -60,17 +60,32 @@ class RidingTracker: NSObject, ObservableObject {
     }
     
     private func requestHealthKitAuthorization() {
-        let typesToRead: Set<HKObjectType> = [
-            HKObjectType.quantityType(forIdentifier: .heartRate)!,
-            HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!
+        // toShare에 워크아웃 타입 추가
+        let typesToShare: Set<HKSampleType> = [
+            HKWorkoutType.workoutType()
         ]
         
-        healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
+        let typesToRead: Set<HKObjectType> = [
+            HKObjectType.quantityType(forIdentifier: .heartRate)!,
+            HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
+            HKWorkoutType.workoutType() // 워크아웃 읽기 권한도 추가
+        ]
+        
+        // toShare를 nil이 아닌 실제 Set으로 전달
+        healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, error in
             if let error = error {
-                print("HealthKit 권한 에러: \(error.localizedDescription)")
+                print("❌ HealthKit 권한 에러: \(error.localizedDescription)")
+                return
+            }
+            
+            if success {
+                print("✅ HealthKit 권한 허용됨")
+            } else {
+                print("⚠️ HealthKit 권한 거부됨")
             }
         }
     }
+
     
     // MARK: - 라이딩 시작
     func startRiding() {
@@ -95,60 +110,62 @@ class RidingTracker: NSObject, ObservableObject {
     
     // MARK: - 라이딩 종료
     func stopRiding() {
-        guard isTracking, let session = currentSession else { return }
+        guard isTracking else { return }
         
-        // 세션 종료 시간 기록
-        session.endTime = Date()
-        session.totalTime = session.endTime!.timeIntervalSince(session.startTime)
+        print("🏁 라이딩 종료!")
         
-        // 평균 속도 계산
-        if !session.speedPoints.isEmpty {
-            session.avgSpeed = session.speedPoints.map { $0.speed }.reduce(0, +) / Double(session.speedPoints.count)
-        }
-        
-        // 평균 심박수 계산
-        if !session.heartRatePoints.isEmpty {
-            session.avgHeartRate = session.heartRatePoints.map { $0.bpm }.reduce(0, +) / Double(session.heartRatePoints.count)
-        }
-        
-        // 실제 라이딩 시간 계산 (일시정지 시간 제외)
-        let totalPauseDuration = session.pauseEvents.reduce(0.0) { $0 + $1.duration }
-        session.activeRidingTime = session.totalTime - totalPauseDuration
-        
-        // SwiftData에 저장
-        saveSession()
-        
-        // 추적 중지
+        // 위치 및 심박수 업데이트 중지
         locationManager.stopUpdatingLocation()
         stopHeartRateMonitoring()
         stopWorkoutSession()
         
+        // 세션 종료 시간 설정
+        currentSession?.endTime = Date()
+        
+        // 전체 시간 계산
+        if let session = currentSession {
+            session.totalTime = Date().timeIntervalSince(session.startTime)
+            
+            // 활동 시간 계산 (전체 시간 - 일시정지 시간)
+            let totalPauseTime = session.pauseEvents.reduce(0.0) { $0 + $1.duration }
+            session.activeRidingTime = session.totalTime - totalPauseTime
+            
+            // 평균 속도 계산
+            if session.activeRidingTime > 0 {
+                session.avgSpeed = (session.totalDistance / 1000.0) / (session.activeRidingTime / 3600.0)
+            }
+            
+            // 평균 심박수 계산
+            if !session.heartRatePoints.isEmpty {
+                let totalBpm = session.heartRatePoints.reduce(0.0) { $0 + $1.bpm }
+                session.avgHeartRate = totalBpm / Double(session.heartRatePoints.count)
+            }
+        }
+        
+        // 세션 저장
+        if let session = currentSession, let context = modelContext {
+            do {
+                context.insert(session)
+                try context.save()
+                print("✅ 세션 저장 완료!")
+                
+                // 통계 출력
+                print("📊 최고 속도: \(session.maxSpeed) km/h")
+                print("📊 고도 상승: \(session.elevationGain) m")
+                print("📊 슬로프 레벨: \(session.slopeLevel.description)")
+                
+                // 🆕 iPhone으로 세션 전송
+                WatchConnectivityManager.shared.sendRidingSession(session)
+                print("📤 iPhone으로 세션 전송 시작...")
+                
+            } catch {
+                print("❌ 세션 저장 실패: \(error)")
+            }
+        }
+        
+        // 상태 초기화
         isTracking = false
         isPaused = false
-        slowSpeedTimer?.invalidate()
-        
-        print("🏁 라이딩 종료!")
-        print("📊 최고 속도: \(session.maxSpeed) km/h")
-        print("📊 고도 상승: \(session.elevationGain) m")
-        print("📊 슬로프 레벨: \(session.slopeLevel.description)")
-    }
-    
-    // MARK: - SwiftData 저장
-    private func saveSession() {
-        guard let session = currentSession, let context = modelContext else {
-            print("❌ ModelContext가 없습니다.")
-            return
-        }
-        
-        // SwiftData에 저장
-        context.insert(session)
-        
-        do {
-            try context.save()
-            print("✅ 세션 저장 완료!")
-        } catch {
-            print("❌ 세션 저장 실패: \(error.localizedDescription)")
-        }
     }
     
     // MARK: - 일시정지
