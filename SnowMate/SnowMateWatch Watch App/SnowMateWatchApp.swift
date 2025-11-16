@@ -9,27 +9,20 @@ import SwiftUI
 import SwiftData
 
 @main
-struct SnowMate_Watch_App: App {
-    // ⭐️ RidingTracker를 StateObject로 생성
+struct SnowMateWatch_Watch_AppApp: App {
     @StateObject private var tracker = RidingTracker()
+    
+    init() {
+        // WatchConnectivity 초기화 및 ModelContext 설정
+        WatchConnectivityManager.shared.configure(with: ModelContainer.shared.mainContext)
+        print("✅ WatchConnectivity 초기화 완료 (Watch)")
+    }
     
     var body: some Scene {
         WindowGroup {
             WatchRidingView()
-                .environmentObject(tracker)  // environmentObject로 전달
+                .environmentObject(tracker)
         }
         .modelContainer(ModelContainer.shared)
-    }
-    
-    // init에서 ModelContext 주입 (중요!)
-    init() {
-        let tracker = RidingTracker()
-        _tracker = StateObject(wrappedValue: tracker)
-        
-        // ModelContext 설정
-        tracker.modelContext = ModelContainer.shared.mainContext
-        
-        print("✅ RidingTracker 초기화 완료")
-        print("✅ ModelContext 주입 완료")
     }
 }

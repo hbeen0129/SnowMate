@@ -52,6 +52,7 @@
 			membershipExceptions = (
 				ModelContainer.swift,
 				RidingSession.swift,
+				WatchConnectivityManager.swift,
 			);
 			target = C9440FF62EBF2F6100913DE3 /* SnowMateWatch Watch App */;
 		};
