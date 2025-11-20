@@ -341,14 +341,40 @@ extension RidingTracker: CLLocationManagerDelegate {
     private func processLocation(_ location: CLLocation) async {
         guard let session = currentSession, !isPaused else { return }
         
-        // 현재 속도 업데이트 (m/s → km/h)
-        let speedKmh = location.speed >= 0 ? location.speed * 3.6 : 0
+        // MARK: - 속도 계산 (개선됨)
+        var speedKmh: Double = 0.0
+        
+        // GPS 기본 속도 (m/s → km/h)
+        let gpsSpeed = location.speed >= 0 ? location.speed * 3.6 : 0
+        
+        // 이전 위치가 있으면 거리/시간으로도 계산
+        if let last = lastLocation {
+            let distance = location.distance(from: last) // meter
+            let timeDiff = location.timestamp.timeIntervalSince(last.timestamp) // second
+            
+            if timeDiff > 0 && timeDiff < 10 { // 10초 이상 차이나면 무시
+                let calculatedSpeed = (distance / timeDiff) * 3.6 // km/h
+                
+                // 두 값의 평균 사용 (더 정확함)
+                if gpsSpeed > 0 && calculatedSpeed > 0 {
+                    speedKmh = (gpsSpeed + calculatedSpeed) / 2
+                } else {
+                    speedKmh = max(gpsSpeed, calculatedSpeed)
+                }
+            } else {
+                speedKmh = gpsSpeed
+            }
+        } else {
+            speedKmh = gpsSpeed
+        }
+        
+        // 현재 속도 업데이트
         currentSpeed = speedKmh
         
-        // 현재 고도 업데이트
+        // MARK: - 현재 고도 업데이트
         currentAltitude = location.altitude
         
-        // 속도 기록
+        // MARK: - 속도 기록
         let speedPoint = SpeedPoint(
             timestamp: location.timestamp,
             speed: speedKmh,
@@ -361,7 +387,7 @@ extension RidingTracker: CLLocationManagerDelegate {
             session.maxSpeed = speedKmh
         }
         
-        // 고도 기록 및 계산
+        // MARK: - 고도 기록 및 계산 (개선됨)
         let altitudePoint = AltitudePoint(
             timestamp: location.timestamp,
             altitude: location.altitude,
@@ -369,13 +395,16 @@ extension RidingTracker: CLLocationManagerDelegate {
         )
         session.altitudePoints.append(altitudePoint)
         
-        // 고도 변화 계산
+        // 고도 변화 계산 (2m 이상 차이만 인정 - GPS 노이즈 제거)
         if lastAltitude != 0 {
             let altitudeDiff = location.altitude - lastAltitude
-            if altitudeDiff > 0 {
-                session.elevationGain += altitudeDiff
-            } else {
-                session.elevationLoss += abs(altitudeDiff)
+            
+            if abs(altitudeDiff) > 2.0 { // 2m 이상 변화만 계산
+                if altitudeDiff > 0 {
+                    session.elevationGain += altitudeDiff
+                } else {
+                    session.elevationLoss += abs(altitudeDiff)
+                }
             }
         }
         lastAltitude = location.altitude
@@ -388,14 +417,18 @@ extension RidingTracker: CLLocationManagerDelegate {
             session.minAltitude = location.altitude
         }
         
-        // 거리 계산
+        // MARK: - 거리 계산
         if let last = lastLocation {
             let distance = location.distance(from: last)
-            session.totalDistance += distance
+            
+            // 너무 큰 거리 변화는 GPS 오류로 간주 (100m 이상)
+            if distance < 100 {
+                session.totalDistance += distance
+            }
         }
         lastLocation = location
         
-        // 저속 감지
+        // MARK: - 저속 감지
         checkSlowSpeed()
     }
     
