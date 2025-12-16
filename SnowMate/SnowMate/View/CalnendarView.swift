@@ -61,7 +61,7 @@ struct CalendarView: View {
                             Text("오늘")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
-                                .border(.red)
+                                
                         }
                         .buttonStyle(.glass)
                     }
