@@ -1,5 +1,5 @@
 //
-//  CalnendarView.swift
+//  CalendarView.swift
 //  SnowMate
 //
 //  Created by 이혜빈 on 11/8/25.
@@ -61,14 +61,9 @@ struct CalendarView: View {
                             Text("오늘")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
-                                .foregroundColor(.primary)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(
-                                    Capsule()
-                                        .strokeBorder(Color.primary.opacity(0.2), lineWidth: 1)
-                                )
+                                
                         }
+                        .buttonStyle(.glass)
                     }
                 }
             }
