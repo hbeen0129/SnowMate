@@ -32,6 +32,7 @@ class RidingTracker: NSObject, ObservableObject {
     private let healthStore = HKHealthStore()
     private var heartRateQuery: HKAnchoredObjectQuery?
     private var workoutSession: HKWorkoutSession?
+    private var workoutBuilder: HKLiveWorkoutBuilder?
     
     // MARK: - Tracking State
     private var lastLocation: CLLocation?
@@ -68,6 +69,8 @@ class RidingTracker: NSObject, ObservableObject {
         healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
             if let error = error {
                 print("HealthKit 권한 에러: \(error.localizedDescription)")
+            } else {
+                print("✅ HealthKit 권한 획득: \(success)")
             }
         }
     }
@@ -81,14 +84,14 @@ class RidingTracker: NSObject, ObservableObject {
         isTracking = true
         isPaused = false
         
+        // HealthKit 워크아웃 세션 시작 (먼저!)
+        startWorkoutSession()
+        
         // 위치 추적 시작
         locationManager.startUpdatingLocation()
         
         // 심박수 모니터링 시작
         startHeartRateMonitoring()
-        
-        // HealthKit 워크아웃 세션 시작
-        startWorkoutSession()
         
         print("🏂 라이딩 시작!")
     }
@@ -160,6 +163,10 @@ class RidingTracker: NSObject, ObservableObject {
         session.pauseEvents.append(pauseEvent)
         
         locationManager.stopUpdatingLocation()
+        
+        // 워크아웃 세션 일시정지
+        workoutSession?.pause()
+        
         print("⏸️ 라이딩 일시정지")
     }
     
@@ -175,6 +182,9 @@ class RidingTracker: NSObject, ObservableObject {
         locationManager.startUpdatingLocation()
         showSlowSpeedAlert = false
         slowSpeedTimer?.invalidate()
+        
+        // 워크아웃 세션 재개
+        workoutSession?.resume()
         
         print("▶️ 라이딩 재개")
     }
@@ -221,7 +231,10 @@ class RidingTracker: NSObject, ObservableObject {
     
     // MARK: - HealthKit 심박수 모니터링
     private func startHeartRateMonitoring() {
-        guard let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) else { return }
+        guard let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) else {
+            print("❌ 심박수 타입을 가져올 수 없음")
+            return
+        }
         
         let predicate = HKQuery.predicateForSamples(withStart: Date(), end: nil, options: .strictStartDate)
         
@@ -272,6 +285,8 @@ class RidingTracker: NSObject, ObservableObject {
                 let bpm = sample.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
                 self.currentHeartRate = bpm
                 
+                print("💓 심박수 업데이트: \(Int(bpm)) bpm")
+                
                 if let session = self.currentSession {
                     let point = HeartRatePoint(timestamp: sample.startDate, bpm: bpm)
                     session.heartRatePoints.append(point)
@@ -287,6 +302,7 @@ class RidingTracker: NSObject, ObservableObject {
     private func stopHeartRateMonitoring() {
         if let query = heartRateQuery {
             healthStore.stop(query)
+            print("💓 심박수 모니터링 중지")
         }
     }
     
@@ -298,15 +314,45 @@ class RidingTracker: NSObject, ObservableObject {
         
         do {
             workoutSession = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
+            workoutBuilder = workoutSession?.associatedWorkoutBuilder()
+            
+            // 🔥 중요: Delegate 설정!
+            workoutSession?.delegate = self
+            workoutBuilder?.delegate = self
+            
+            // 데이터 소스 설정
+            workoutBuilder?.dataSource = HKLiveWorkoutDataSource(
+                healthStore: healthStore,
+                workoutConfiguration: configuration
+            )
+            
+            // 세션 시작
             workoutSession?.startActivity(with: Date())
+            workoutBuilder?.beginCollection(withStart: Date()) { success, error in
+                if let error = error {
+                    print("❌ 워크아웃 빌더 시작 실패: \(error.localizedDescription)")
+                } else {
+                    print("✅ 워크아웃 빌더 시작 성공")
+                }
+            }
+            
+            print("✅ 워크아웃 세션 시작")
         } catch {
-            print("워크아웃 세션 시작 실패: \(error.localizedDescription)")
+            print("❌ 워크아웃 세션 시작 실패: \(error.localizedDescription)")
         }
     }
     
     private func stopWorkoutSession() {
         workoutSession?.end()
+        workoutBuilder?.endCollection(withEnd: Date()) { success, error in
+            if let error = error {
+                print("❌ 워크아웃 종료 실패: \(error.localizedDescription)")
+            }
+        }
+        
         workoutSession = nil
+        workoutBuilder = nil
+        print("✅ 워크아웃 세션 종료")
     }
 }
 
@@ -383,6 +429,56 @@ extension RidingTracker: CLLocationManagerDelegate {
     }
     
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("위치 추적 에러: \(error.localizedDescription)")
+        print("❌ 위치 추적 에러: \(error.localizedDescription)")
+    }
+}
+
+// MARK: - HKWorkoutSessionDelegate
+extension RidingTracker: HKWorkoutSessionDelegate {
+    
+    nonisolated func workoutSession(_ workoutSession: HKWorkoutSession,
+                                   didChangeTo toState: HKWorkoutSessionState,
+                                   from fromState: HKWorkoutSessionState,
+                                   date: Date) {
+        Task { @MainActor in
+            switch toState {
+            case .running:
+                print("✅ 워크아웃 세션: 실행 중")
+            case .paused:
+                print("⏸️ 워크아웃 세션: 일시정지")
+            case .stopped:
+                print("🛑 워크아웃 세션: 중지됨")
+            case .ended:
+                print("🏁 워크아웃 세션: 종료됨")
+            default:
+                print("ℹ️ 워크아웃 세션 상태: \(toState.rawValue)")
+            }
+        }
+    }
+    
+    nonisolated func workoutSession(_ workoutSession: HKWorkoutSession,
+                                   didFailWithError error: Error) {
+        Task { @MainActor in
+            print("❌ 워크아웃 세션 에러: \(error.localizedDescription)")
+        }
+    }
+}
+
+// MARK: - HKLiveWorkoutBuilderDelegate
+extension RidingTracker: HKLiveWorkoutBuilderDelegate {
+    
+    nonisolated func workoutBuilder(_ workoutBuilder: HKLiveWorkoutBuilder,
+                                   didCollectDataOf collectedTypes: Set<HKSampleType>) {
+        Task { @MainActor in
+            for type in collectedTypes {
+                if type == HKObjectType.quantityType(forIdentifier: .heartRate) {
+                    print("💓 워크아웃 빌더에서 심박수 데이터 수집 중")
+                }
+            }
+        }
+    }
+    
+    nonisolated func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {
+        // 워크아웃 이벤트 수집
     }
 }
