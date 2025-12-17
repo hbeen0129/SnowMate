@@ -5,6 +5,13 @@
 //  Created by 이혜빈 on 11/8/25.
 //
 
+//
+//  RidingTracker.swift
+//  SnowMateWatch Watch App
+//
+//  Created by 이혜빈 on 11/8/25.
+//
+
 import Foundation
 import CoreLocation
 import HealthKit
