@@ -16,11 +16,12 @@ struct CalendarView: View {
     @State private var selectedDate: Date = Date()
     @State private var showingDiarySheet = false
     @State private var currentMonth: Date = Date()
+    @State private var showingMonthYearPicker = false
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // 월 선택 헤더
+                // 월 네비게이션 헤더
                 monthNavigationHeader
                 
                 // 캘린더 그리드
@@ -36,11 +37,44 @@ struct CalendarView: View {
                 }
             }
             .navigationTitle("라이딩 기록")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    // 년/월 선택 버튼
+                    Button(action: { showingMonthYearPicker = true }) {
+                        Text(yearString)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule()
+                                    .strokeBorder(Color.primary.opacity(0.2), lineWidth: 1)
+                            )
+                    }
+                }
+                
+                ToolbarItem(placement: .topBarTrailing) {
+                    // 오늘 버튼 (오늘이 아닐 때만 표시)
+                    if !isToday(selectedDate) || !isCurrentMonth(currentMonth) {
+                        Button(action: goToToday) {
+                            Text("오늘")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                
+                        }
+                        .buttonStyle(.glass)
+                    }
+                }
+            }
         }
         .sheet(isPresented: $showingDiarySheet) {
             if let session = sessionForSelectedDate {
                 DiaryEditView(session: session)
             }
+        }
+        .sheet(isPresented: $showingMonthYearPicker) {
+            MonthYearPickerView(selectedDate: $currentMonth, isPresented: $showingMonthYearPicker)
         }
     }
     
@@ -50,11 +84,12 @@ struct CalendarView: View {
             Button(action: { changeMonth(by: -1) }) {
                 Image(systemName: "chevron.left")
                     .font(.title3)
+                    .foregroundColor(.primary)
             }
             
             Spacer()
             
-            Text(monthYearString)
+            Text(monthString)
                 .font(.headline)
             
             Spacer()
@@ -62,6 +97,7 @@ struct CalendarView: View {
             Button(action: { changeMonth(by: 1) }) {
                 Image(systemName: "chevron.right")
                     .font(.title3)
+                    .foregroundColor(.primary)
             }
         }
         .padding()
@@ -100,6 +136,7 @@ struct CalendarView: View {
                 }
             }
             .padding(.horizontal)
+            .frame(height: 320)
         }
     }
     
@@ -172,9 +209,16 @@ struct CalendarView: View {
     }
     
     // MARK: - Helper Functions
-    private var monthYearString: String {
+    private var monthString: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy년 M월"
+        formatter.dateFormat = "M월"
+        formatter.locale = Locale(identifier: "ko_KR")
+        return formatter.string(from: currentMonth)
+    }
+    
+    private var yearString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy년"
         formatter.locale = Locale(identifier: "ko_KR")
         return formatter.string(from: currentMonth)
     }
@@ -205,9 +249,29 @@ struct CalendarView: View {
     }
     
     private func changeMonth(by value: Int) {
-        if let newMonth = Calendar.current.date(byAdding: .month, value: value, to: currentMonth) {
-            currentMonth = newMonth
+        withAnimation {
+            if let newMonth = Calendar.current.date(byAdding: .month, value: value, to: currentMonth) {
+                currentMonth = newMonth
+            }
         }
+    }
+    
+    // 오늘 날짜로 이동
+    private func goToToday() {
+        withAnimation {
+            selectedDate = Date()
+            currentMonth = Date()
+        }
+    }
+    
+    // 오늘 날짜인지 확인
+    private func isToday(_ date: Date) -> Bool {
+        Calendar.current.isDateInToday(date)
+    }
+    
+    // 현재 월인지 확인
+    private func isCurrentMonth(_ date: Date) -> Bool {
+        Calendar.current.isDate(date, equalTo: Date(), toGranularity: .month)
     }
     
     private func isSameDay(_ date1: Date, _ date2: Date) -> Bool {
@@ -237,6 +301,54 @@ struct CalendarView: View {
         } else {
             return String(format: "%d:%02d", minutes, seconds)
         }
+    }
+}
+
+// MARK: - Month/Year Picker View
+struct MonthYearPickerView: View {
+    @Binding var selectedDate: Date
+    @Binding var isPresented: Bool
+    @State private var tempDate: Date
+    
+    init(selectedDate: Binding<Date>, isPresented: Binding<Bool>) {
+        self._selectedDate = selectedDate
+        self._isPresented = isPresented
+        self._tempDate = State(initialValue: selectedDate.wrappedValue)
+    }
+    
+    var body: some View {
+        NavigationStack {
+            VStack {
+                DatePicker(
+                    "년/월 선택",
+                    selection: $tempDate,
+                    displayedComponents: [.date]
+                )
+                .datePickerStyle(.graphical)
+                .padding()
+                
+                Spacer()
+            }
+            .navigationTitle("년/월 선택")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("취소") {
+                        isPresented = false
+                    }
+                }
+                
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("완료") {
+                        withAnimation {
+                            selectedDate = tempDate
+                        }
+                        isPresented = false
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 }
 
