@@ -75,25 +75,63 @@ class RidingTracker: NSObject, ObservableObject {
         }
     }
     
+    private func checkAndRequestHealthKitAuthorization(completion: @escaping (Bool) -> Void) {
+        guard let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) else {
+            completion(false)
+            return
+        }
+        
+        let typesToRead: Set<HKObjectType> = [
+            heartRateType,
+            HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!
+        ]
+        
+        // 권한 상태 확인
+        let status = healthStore.authorizationStatus(for: heartRateType)
+        
+        print("💡 현재 HealthKit 권한 상태: \(status.rawValue)")
+        
+        // 권한 요청 (이미 결정되었어도 다시 요청 - 팝업은 안 뜨지만 completion은 호출됨)
+        healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
+            if let error = error {
+                print("❌ HealthKit 권한 요청 에러: \(error.localizedDescription)")
+                completion(false)
+            } else {
+                print("✅ HealthKit 권한 요청 완료: \(success)")
+                completion(success)
+            }
+        }
+    }
+    
     // MARK: - 라이딩 시작
     func startRiding() {
         guard !isTracking else { return }
         
-        // 새 세션 생성
-        currentSession = RidingSession(startTime: Date())
-        isTracking = true
-        isPaused = false
-        
-        // HealthKit 워크아웃 세션 시작 (먼저!)
-        startWorkoutSession()
-        
-        // 위치 추적 시작
-        locationManager.startUpdatingLocation()
-        
-        // 심박수 모니터링 시작
-        startHeartRateMonitoring()
-        
-        print("🏂 라이딩 시작!")
+        // HealthKit 권한 먼저 확인 및 요청
+        checkAndRequestHealthKitAuthorization { [weak self] authorized in
+            guard let self = self, authorized else {
+                print("❌ HealthKit 권한 거부됨")
+                return
+            }
+            
+            Task { @MainActor in
+                // 새 세션 생성
+                self.currentSession = RidingSession(startTime: Date())
+                self.isTracking = true
+                self.isPaused = false
+                
+                // HealthKit 워크아웃 세션 시작 (먼저!)
+                self.startWorkoutSession()
+                
+                // 위치 추적 시작
+                self.locationManager.startUpdatingLocation()
+                
+                // 심박수 모니터링 시작
+                self.startHeartRateMonitoring()
+                
+                print("🏂 라이딩 시작!")
+            }
+        }
     }
     
     // MARK: - 라이딩 종료
