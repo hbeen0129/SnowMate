@@ -9,11 +9,20 @@ import SwiftUI
 import SwiftData
 
 @main
-struct SnowMate_Watch_App: App {
+struct SnowMateWatch_Watch_AppApp: App {
+    @StateObject private var tracker = RidingTracker()
+    
+    init() {
+        // WatchConnectivity 초기화 및 ModelContext 설정
+        WatchConnectivityManager.shared.configure(with: ModelContainer.shared.mainContext)
+        print("✅ WatchConnectivity 초기화 완료 (Watch)")
+    }
+    
     var body: some Scene {
         WindowGroup {
             WatchRidingView()
+                .environmentObject(tracker)
         }
-        .modelContainer(ModelContainer.shared)  // ✅ 공유 컨테이너 사용
+        .modelContainer(ModelContainer.shared)
     }
 }
