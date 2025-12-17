@@ -29,6 +29,16 @@ struct RidingStartView: View {
             }
             .buttonStyle(.glass)
             .tint(.blue)
+            
+            // HealthKit 사용 안내
+            HStack(spacing: 4) {
+                Image(systemName: "heart.fill")
+                    .font(.caption2)
+                Text("심박수는 Apple Health에서 측정")
+                    .font(.caption2)
+            }
+            .foregroundColor(.secondary)
+            .padding(.top, 4)
         }
         .padding()
     }
