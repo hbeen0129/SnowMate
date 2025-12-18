@@ -44,9 +44,10 @@ struct CalendarView: View {
                         Text(yearString)
                             .font(.subheadline)
                             .fontWeight(.medium)
+                            .fixedSize(horizontal: true, vertical: false)
                     }
-                    .buttonStyle(.glassProminent)
-                    .tint(.bluePoint)
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color(.bluePoint))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                 }
@@ -58,9 +59,10 @@ struct CalendarView: View {
                             Text("오늘")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
+                                .fixedSize(horizontal: true, vertical: false)
                         }
-                        .buttonStyle(.glassProminent)
-                        .tint(.bluePoint)
+                        .buttonStyle(.borderedProminent)
+                        .tint(Color(.bluePoint))
                         .padding(12)
                     }
                 }
@@ -369,17 +371,17 @@ struct DayCell: View {
             VStack(spacing: 4) {
                 Text(dayNumber)
                     .font(.system(size: 16, weight: isSelected ? .bold : .regular))
-                    .foregroundColor(isSelected ? .white : (hasRiding ? .primary : .secondary))
-                    .frame(width: 40, height: 40)
+                    .foregroundColor(isSelected ? .primary : (hasRiding ? .primary : .secondary))
+                    .padding(10)
                     .background(
                         Circle()
-                            .fill(isSelected ? Color.blue : Color.clear)
+                            .fill(isSelected ? Color.bluePoint : Color.clear)
                     )
                 
                 // 라이딩 기록 인디케이터
                 if hasRiding {
                     Circle()
-                        .fill(hasDiary ? Color.green : Color.orange)
+                        .fill(hasDiary ? Color.orangePoint : Color.bluePoint)
                         .frame(width: 6, height: 6)
                 } else {
                     Color.clear
@@ -503,5 +505,17 @@ struct DiaryEditView: View {
             session.diary?.photoData = photoData
         }
         try? modelContext.save()
+    }
+}
+
+struct CalendarView_Preview: PreviewProvider {
+    static var devices = ["iPhone 11", "iPhone 17 Pro Max"]
+    
+    static var previews: some View {
+        ForEach(devices, id: \.self) { device in
+            CalendarView()
+                .previewDevice(PreviewDevice(rawValue: device))
+                .previewDisplayName(device)
+        }
     }
 }
