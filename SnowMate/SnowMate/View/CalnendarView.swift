@@ -39,19 +39,16 @@ struct CalendarView: View {
             .navigationTitle("라이딩 기록")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    // 년/월 선택 버튼
+                    // 년도 버튼
                     Button(action: { showingMonthYearPicker = true }) {
                         Text(yearString)
                             .font(.subheadline)
                             .fontWeight(.medium)
-                            .foregroundColor(.primary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(
-                                Capsule()
-                                    .strokeBorder(Color.primary.opacity(0.2), lineWidth: 1)
-                            )
                     }
+                    .buttonStyle(.glassProminent)
+                    .tint(.bluePoint)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -61,9 +58,10 @@ struct CalendarView: View {
                             Text("오늘")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
-                                
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(.glassProminent)
+                        .tint(.bluePoint)
+                        .padding(12)
                     }
                 }
             }
